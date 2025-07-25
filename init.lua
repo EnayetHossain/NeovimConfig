@@ -84,6 +84,33 @@ I hope you enjoy your Neovim journey,
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
 
+_G.transparent_enabled = false
+_G.original_highlights = {}
+
+-- Save the original background colors at startup
+local function save_original_bg(group)
+  local hl = vim.api.nvim_get_hl(0, { name = group, link = false })
+  _G.original_highlights[group] = hl.bg or "NONE"
+end
+
+local function save_all_original_bgs()
+  local groups = {
+    "Normal", "NormalNC", "NormalFloat", "FloatBorder", "VertSplit",
+    "EndOfBuffer", "NvimTreeNormal", "NvimTreeNormalNC",
+    "NvimTreeEndOfBuffer", "NvimTreeVertSplit"
+  }
+  for _, group in ipairs(groups) do
+    save_original_bg(group)
+  end
+end
+
+-- Call it once after colorscheme is loaded
+vim.api.nvim_create_autocmd("ColorScheme", {
+  callback = function()
+    save_all_original_bgs()
+  end,
+})
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -92,6 +119,39 @@ vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = true
+
+-- Apply transparency in neovim colorscheme
+-- Global toggle state
+
+function _G.toggle_transparency()
+  local groups = {
+    "Normal", "NormalNC", "NormalFloat", "FloatBorder", "VertSplit",
+    "EndOfBuffer", "NvimTreeNormal", "NvimTreeNormalNC",
+    "NvimTreeEndOfBuffer", "NvimTreeVertSplit"
+  }
+
+  if _G.transparent_enabled then
+    -- Restore original colors
+    for _, group in ipairs(groups) do
+      local bg = _G.original_highlights[group]
+      if bg ~= nil then
+        vim.api.nvim_set_hl(0, group, { bg = bg })
+      end
+    end
+  else
+    -- Set background to transparent
+    for _, group in ipairs(groups) do
+      vim.api.nvim_set_hl(0, group, { bg = "NONE" })
+    end
+  end
+
+  _G.transparent_enabled = not _G.transparent_enabled
+end
+
+vim.keymap.set("n", "<leader>tt", _G.toggle_transparency, { desc = "Toggle Transparency" })
+
+-- Force trigger the highlight after colorscheme loads
+vim.opt.termguicolors = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -102,7 +162,10 @@ vim.g.have_nerd_font = true
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
+-- vim.opt.tabstop = 2
+-- vim.opt.shiftwidth = 2
+-- vim.opt.expandtab = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -280,12 +343,8 @@ require('lazy').setup({
       require('toggleterm').setup(opts)
       local Terminal = require('toggleterm.terminal').Terminal
 
-      -- LazyGit terminal setup
-      local lazygit = Terminal:new({ cmd = "lazygit", hidden = true })
-      function _LAZYGIT_TOGGLE()
-        lazygit:toggle()
-      end
-      vim.keymap.set("n", "<leader>gg", "<cmd>lua _LAZYGIT_TOGGLE()<CR>", { desc = "Open LazyGit" })
+      vim.keymap.set("n", "<leader>gg", "<cmd>ToggleTerm direction=horizontal<CR>", { desc = "Toggle Terminal" })
+      vim.keymap.set("t", "<leader>gg", "<cmd>ToggleTerm direction=horizontal<CR>", { desc = "Toggle Terminal" })
 
       -- Example: PowerShell terminal setup
       local powershell = Terminal:new({ cmd = "pwsh", hidden = true })
@@ -295,6 +354,90 @@ require('lazy').setup({
       vim.keymap.set("n", "<leader>sh", "<cmd>lua _POWERSHELL_TOGGLE()<CR>", { desc = "Open PowerShell" })
     end,
   },
+
+  {
+  'akinsho/bufferline.nvim',
+  version = "*",
+  dependencies = 'nvim-tree/nvim-web-devicons',
+  config = function()
+    require("bufferline").setup{
+        options = {
+            mode = "buffers",
+            diagnostics = "nvim_lsp",
+            offsets = {
+              {
+                filetype = "NvimTree",
+                text = "File Explorer",
+                highlight = "Directory",
+                text_align = "left",
+                separator = true,
+              },
+            },
+          }
+      }
+    vim.opt.termguicolors = true
+    vim.keymap.set("n", "<S-l>", ":BufferLineCycleNext<CR>", { desc = "Next buffer" })
+    vim.keymap.set("n", "<S-h>", ":BufferLineCyclePrev<CR>", { desc = "Prev buffer" })
+  end,
+},
+
+  {
+  'famiu/bufdelete.nvim',
+  keys = {
+    { '<leader>bd', '<cmd>Bdelete<CR>', desc = '[B]uffer [D]elete' },
+  },
+},
+
+{
+  "AckslD/swenv.nvim",
+  config = function()
+    local swenv = require("swenv")
+
+    swenv.setup({
+      venvs_path = vim.fn.getcwd(),
+      post_set_venv = function()
+        vim.cmd("LspRestart")
+      end,
+    })
+
+    -- 🔧 Register the :SwenvInfo command correctly
+    vim.api.nvim_create_user_command("SwenvInfo", function()
+      local api = require("swenv.api")
+      local venv = api.get_current_venv()
+      if venv then
+        vim.notify("Current virtualenv: " .. venv.name, vim.log.levels.INFO)
+      else
+        vim.notify("No virtual environment selected", vim.log.levels.WARN)
+      end
+    end, {})
+  end,
+
+  keys = {
+    { "<leader>vs", "<cmd>lua require('swenv.api').pick_venv()<CR>", desc = "Select VirtualEnv" },
+    { "<leader>vi", "<cmd>SwenvInfo<CR>", desc = "Show Current VirtualEnv" },
+  },
+},
+
+  {
+    "kdheepak/lazygit.nvim",
+    lazy = true,
+    cmd = {
+        "LazyGit",
+        "LazyGitConfig",
+        "LazyGitCurrentFile",
+        "LazyGitFilter",
+        "LazyGitFilterCurrentFile",
+    },
+    -- optional for floating window border decoration
+    dependencies = {
+        "nvim-lua/plenary.nvim",
+    },
+    -- setting the keybinding for LazyGit with 'keys' is recommended in
+    -- order to load the plugin when the command is run for the first time
+    keys = {
+        { "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" }
+    }
+},
 
   {
     'nvim-tree/nvim-tree.lua',
@@ -486,7 +629,8 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
-      vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+      vim.keymap.set('n', '<leader><leader>', require('telescope.builtin').find_files, { desc = 'Find [F]iles with <leader><leader>' })
+      vim.keymap.set('n', '<leader>sb', builtin.buffers, { desc = '[ ] Find existing buffers' })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
@@ -864,7 +1008,7 @@ require('lazy').setup({
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          --['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<CR>'] = cmp.mapping.confirm { select = true },
           --['<Tab>'] = cmp.mapping.select_next_item(),
           --['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
@@ -926,6 +1070,21 @@ require('lazy').setup({
       vim.cmd.hi 'Comment gui=none'
     end,
   },
+
+  -- onedark
+  {"navarasu/onedark.nvim", lazy = false, priority = 1000, transparent = true},
+
+  -- Catppuccin
+  { "catppuccin/nvim", name = "catppuccin", lazy = false, priority = 1000, transparent = true },
+
+  -- Gruvbox
+  { "ellisonleao/gruvbox.nvim", lazy = false, priority = 1000, transparent = true },
+
+  -- Nord
+  { "shaunsingh/nord.nvim", lazy = false, priority = 1000, transparent = true },
+
+  -- Solarized
+  { "maxmx03/solarized.nvim", lazy = false, priority = 1000, transparent = true },
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
