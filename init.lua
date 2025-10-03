@@ -95,10 +95,16 @@ end
 
 local function save_all_original_bgs()
   local groups = {
-    "Normal", "NormalNC", "NormalFloat", "FloatBorder", "VertSplit",
-    "EndOfBuffer", "NvimTreeNormal", "NvimTreeNormalNC",
-    "NvimTreeEndOfBuffer", "NvimTreeVertSplit"
-  }
+  "Normal", "NormalNC", "NormalFloat", "FloatBorder", "VertSplit",
+  "EndOfBuffer", "NvimTreeNormal", "NvimTreeNormalNC",
+  "NvimTreeEndOfBuffer", "NvimTreeVertSplit",
+  "TermCursor", "CursorLine", "StatusLine", "StatusLineNC", "WinSeparator",
+  -- Crucial for toggleterm transparency
+  "ToggleTerm",
+  "ToggleTermFloat", -- If you use float terminals
+  "Term", -- Generic terminal highlight group, good to include
+  "TermNormal", "TermNormalNC", -- Keep these as fallback
+}
   for _, group in ipairs(groups) do
     save_original_bg(group)
   end
@@ -107,6 +113,20 @@ end
 -- Call it once after colorscheme is loaded
 vim.api.nvim_create_autocmd("ColorScheme", {
   callback = function()
+    -- Ensure your preferred colorscheme is set first
+    vim.cmd.colorscheme("tokyonight")
+    save_all_original_bgs()
+    -- If transparency is already enabled, re-apply it after colorscheme loads
+    if _G.transparent_enabled then
+      _G.toggle_transparency()
+    end
+  end,
+})
+
+-- Call it once after colorscheme is loaded
+vim.api.nvim_create_autocmd("ColorScheme", {
+  callback = function()
+    vim.cmd.colorscheme("tokyonight")
     save_all_original_bgs()
   end,
 })
@@ -127,7 +147,12 @@ function _G.toggle_transparency()
   local groups = {
     "Normal", "NormalNC", "NormalFloat", "FloatBorder", "VertSplit",
     "EndOfBuffer", "NvimTreeNormal", "NvimTreeNormalNC",
-    "NvimTreeEndOfBuffer", "NvimTreeVertSplit"
+    "NvimTreeEndOfBuffer", "NvimTreeVertSplit",
+    "TermNormal", "TermNormalNC",
+    -- Add toggleterm specific groups here
+    "ToggleTerm",
+    "ToggleTermFloat",
+    "Term",
   }
 
   if _G.transparent_enabled then
@@ -148,6 +173,29 @@ function _G.toggle_transparency()
   _G.transparent_enabled = not _G.transparent_enabled
 end
 
+vim.api.nvim_create_autocmd("ColorScheme", {
+  callback = function()
+    save_all_original_bgs()
+    if _G.transparent_enabled then
+      _G.toggle_transparency()
+    end
+  end,
+})
+
+vim.api.nvim_create_autocmd("TermOpen", {
+  pattern = "term://*", -- This pattern applies to all terminal buffers
+  callback = function()
+    if _G.transparent_enabled then
+      -- Use vim.defer_fn to give toggleterm a moment to apply its own highlights
+      vim.defer_fn(function()
+        vim.api.nvim_set_hl(0, "ToggleTerm", { bg = "NONE" })
+        vim.api.nvim_set_hl(0, "ToggleTermFloat", { bg = "NONE" })
+        vim.api.nvim_set_hl(0, "Term", { bg = "NONE" })
+      end, 50) -- 50ms delay
+    end
+  end,
+})
+
 vim.keymap.set("n", "<leader>tt", _G.toggle_transparency, { desc = "Toggle Transparency" })
 
 -- Force trigger the highlight after colorscheme loads
@@ -163,9 +211,9 @@ vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
 vim.opt.relativenumber = true
--- vim.opt.tabstop = 2
--- vim.opt.shiftwidth = 2
--- vim.opt.expandtab = true
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
+vim.opt.expandtab = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -320,40 +368,40 @@ require('lazy').setup({
   },
 
   {
-    'akinsho/toggleterm.nvim',
-    version = "*",
-    opts = {
-      size = 20,
-      open_mapping = [[<C-\>]], -- Key to toggle terminal
-      hide_numbers = true,
-      shade_filetypes = {},
-      shade_terminals = true,
-      shading_factor = 2,
-      start_in_insert = true,
-      insert_mappings = true,
-      persist_size = true,
-      direction = "horizontal", -- Can be "vertical" or "float"
-      close_on_exit = true,
-      shell = "pwsh", -- Set to PowerShell; use "powershell.exe" if on older systems
-      float_opts = {
-        border = "curved",
-      },
+  'akinsho/toggleterm.nvim',
+  version = "*",
+  opts = {
+    size = 20,
+    open_mapping = [[<C-\>]], -- Key to toggle terminal
+    hide_numbers = true,
+    shade_filetypes = {},
+    shade_terminals = false, -- <--- ABSOLUTELY ESSENTIAL: Set this to false
+    -- shading_factor = 2, -- No longer relevant if shade_terminals is false
+    start_in_insert = true,
+    insert_mappings = true,
+    persist_size = true,
+    direction = "horizontal", -- Can be "vertical" or "float"
+    close_on_exit = true,
+    shell = "pwsh", -- Set to PowerShell; use "powershell.exe" if on older systems
+    float_opts = {
+      border = "curved",
     },
-    config = function(_, opts)
-      require('toggleterm').setup(opts)
-      local Terminal = require('toggleterm.terminal').Terminal
-
-      vim.keymap.set("n", "<leader>gg", "<cmd>ToggleTerm direction=horizontal<CR>", { desc = "Toggle Terminal" })
-      vim.keymap.set("t", "<leader>gg", "<cmd>ToggleTerm direction=horizontal<CR>", { desc = "Toggle Terminal" })
-
-      -- Example: PowerShell terminal setup
-      local powershell = Terminal:new({ cmd = "pwsh", hidden = true })
-      function _POWERSHELL_TOGGLE()
-        powershell:toggle()
-      end
-      vim.keymap.set("n", "<leader>sh", "<cmd>lua _POWERSHELL_TOGGLE()<CR>", { desc = "Open PowerShell" })
-    end,
   },
+  config = function(_, opts)
+    require('toggleterm').setup(opts)
+    local Terminal = require('toggleterm.terminal').Terminal
+
+    vim.keymap.set("n", "<leader>gg", "<cmd>ToggleTerm direction=horizontal<CR>", { desc = "Toggle Terminal" })
+    vim.keymap.set("t", "<leader>gg", "<cmd>ToggleTerm direction=horizontal<CR>", { desc = "Toggle Terminal" })
+
+    -- Example: PowerShell terminal setup
+    local powershell = Terminal:new({ cmd = "pwsh", hidden = true })
+    function _POWERSHELL_TOGGLE()
+      powershell:toggle()
+    end
+    vim.keymap.set("n", "<leader>sh", "<cmd>lua _POWERSHELL_TOGGLE()<CR>", { desc = "Open PowerShell" })
+  end,
+},
 
   {
   'akinsho/bufferline.nvim',
@@ -437,6 +485,33 @@ require('lazy').setup({
     keys = {
         { "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" }
     }
+},
+
+  {
+  "sphamba/smear-cursor.nvim",
+
+  opts = {
+    -- Smear cursor when switching buffers or windows.
+    smear_between_buffers = true,
+    stiffness = 0.9,
+    trailing_stiffness = 0.8,
+    distance_stop_animating = 0.3,
+
+    -- Smear cursor when moving within line or to neighbor lines.
+    -- Use `min_horizontal_distance_smear` and `min_vertical_distance_smear` for finer control
+    smear_between_neighbor_lines = true,
+
+    -- Draw the smear in buffer space instead of screen space when scrolling
+    scroll_buffer_space = true,
+
+    -- Set to `true` if your font supports legacy computing symbols (block unicode symbols).
+    -- Smears will blend better on all backgrounds.
+    legacy_computing_symbols_support = false,
+
+    -- Smear cursor in insert mode.
+    -- See also `vertical_bar_cursor_insert_mode` and `distance_stop_animating_vertical_bar`.
+    smear_insert_mode = true,
+  },
 },
 
   {
