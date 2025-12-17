@@ -17,6 +17,9 @@ return {
   -- tokyonight
   { "folke/tokyonight.nvim", lazy = false, priority = 1000, transparent = true },
 
+  -- rose pine
+  { "rose-pine/neovim", lazy = false, priority = 1000, transparent = true },
+
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
 }

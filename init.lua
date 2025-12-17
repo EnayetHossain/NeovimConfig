@@ -109,6 +109,7 @@ vim.opt.relativenumber = true
 vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 vim.opt.expandtab = true
+vim.opt.winborder = "rounded"
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -172,6 +173,9 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>c', function() vim.cmd("Telescope colorscheme") end, { noremap=true, silent=true, desc = 'Open colorscheme options' })
+vim.keymap.set('n', '<leader>hs', function() vim.cmd("horizontal split") end, { noremap=true, silent=true, desc = 'Split the buffer horizontally' })
+vim.keymap.set('n', '<leader>sv', function() vim.cmd("vertical split") end, { noremap=true, silent=true, desc = 'Split the buffer vertically' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -659,7 +663,7 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -752,10 +756,9 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
+        python = { "isort" },
         -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        javascript = { "prettier", "prettierd", stop_after_first = true },
       },
     },
   },
@@ -881,13 +884,13 @@ require('lazy').setup({
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'navarasu/onedark.nvim',
+    'rose-pine/neovim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     init = function()
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'onedark'
+      vim.cmd.colorscheme 'rose-pine'
 
       -- You can configure highlights by doing something like:
       vim.cmd.hi 'Comment gui=none'
