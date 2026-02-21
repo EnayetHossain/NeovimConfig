@@ -173,9 +173,12 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
-vim.keymap.set('n', '<leader>c', function() vim.cmd("Telescope colorscheme") end, { noremap=true, silent=true, desc = 'Open colorscheme options' })
-vim.keymap.set('n', '<leader>hs', function() vim.cmd("horizontal split") end, { noremap=true, silent=true, desc = 'Split the buffer horizontally' })
-vim.keymap.set('n', '<leader>sv', function() vim.cmd("vertical split") end, { noremap=true, silent=true, desc = 'Split the buffer vertically' })
+vim.keymap.set('n', '<leader>c', function() vim.cmd("Telescope colorscheme") end,
+  { noremap = true, silent = true, desc = 'Open colorscheme options' })
+vim.keymap.set('n', '<leader>hs', function() vim.cmd("horizontal split") end,
+  { noremap = true, silent = true, desc = 'Split the buffer horizontally' })
+vim.keymap.set('n', '<leader>sv', function() vim.cmd("vertical split") end,
+  { noremap = true, silent = true, desc = 'Split the buffer vertically' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -317,7 +320,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  { -- Useful plugin to show you pending keybinds.
+  {                     -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -360,7 +363,7 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
-        { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
+        { '<leader>c', group = '[C]ode',     mode = { 'n', 'x' } },
         { '<leader>d', group = '[D]ocument' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
@@ -400,7 +403,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -456,7 +459,8 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
-      vim.keymap.set('n', '<leader><leader>', require('telescope.builtin').find_files, { desc = 'Find [F]iles with <leader><leader>' })
+      vim.keymap.set('n', '<leader><leader>', require('telescope.builtin').find_files,
+        { desc = 'Find [F]iles with <leader><leader>' })
       vim.keymap.set('n', '<leader>sb', builtin.buffers, { desc = '[ ] Find existing buffers' })
 
       -- Slightly advanced example of overriding default behavior and theme
@@ -497,7 +501,7 @@ require('lazy').setup({
       },
     },
   },
-  { 'Bilal2453/luvit-meta', lazy = true },
+  { 'Bilal2453/luvit-meta',   lazy = true },
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
@@ -509,7 +513,7 @@ require('lazy').setup({
 
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim', opts = {} },
+      { 'j-hui/fidget.nvim',       opts = {} },
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
@@ -660,10 +664,12 @@ require('lazy').setup({
       --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
+      local lspconfig = require('lspconfig');
+
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        pyright = {},
+        pyright                = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -674,7 +680,7 @@ require('lazy').setup({
         -- ts_ls = {},
         --
 
-        lua_ls = {
+        lua_ls                 = {
           -- cmd = {...},
           -- filetypes = { ...},
           -- capabilities = {},
@@ -688,6 +694,20 @@ require('lazy').setup({
             },
           },
         },
+        kotlin_language_server = {
+        -- This fixes the JSON/GSON internal error by forcing a clean storage location
+        init_options = {
+          storagePath = vim.fn.stdpath("cache") .. "/kotlin_language_server"
+        },
+        root_dir = lspconfig.util.root_pattern("android/build.gradle", "build.gradle", "settings.gradle"),
+          settings = {
+            kotlin = {
+              compiler = {
+                jvm = { target = "17" }
+              }
+            }
+          }
+        }
       }
 
       -- Ensure the servers and tools above are installed
@@ -754,11 +774,13 @@ require('lazy').setup({
         }
       end,
       formatters_by_ft = {
-        lua = { 'stylua' },
+        lua = { vim.fn.stdpath("data") .. "/mason/bin/stylua.CMD" },
         -- Conform can also run multiple formatters sequentially
-        python = { "isort" },
+        python = { "isort", "black" },
         -- You can use 'stop_after_first' to run the first available formatter from the list
         javascript = { "prettier", "prettierd", stop_after_first = true },
+
+        kotlin = { "ktlint" },
       },
     },
   },
