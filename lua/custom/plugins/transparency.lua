@@ -1,104 +1,100 @@
 _G.transparent_enabled = false
 _G.original_highlights = {}
 
--- Save the original background colors at startup
-local function save_original_bg(group)
-  local hl = vim.api.nvim_get_hl(0, { name = group, link = false })
-  _G.original_highlights[group] = hl.bg or "NONE"
-end
+local groups = {
+	"Normal",
+	"NormalNC",
+	"NormalFloat",
+	"FloatBorder",
+	"VertSplit",
+	"WinSeparator",
+	"EndOfBuffer",
 
-local function save_all_original_bgs()
-  local groups = {
-  "Normal", "NormalNC", "NormalFloat", "FloatBorder", "VertSplit",
-  "EndOfBuffer", "NvimTreeNormal", "NvimTreeNormalNC",
-  "NvimTreeEndOfBuffer", "NvimTreeVertSplit",
-  "TermCursor", "CursorLine", "StatusLine", "StatusLineNC", "WinSeparator",
-  -- Crucial for toggleterm transparency
-  "ToggleTerm",
-  "ToggleTermFloat", -- If you use float terminals
-  "Term", -- Generic terminal highlight group, good to include
-  "TermNormal", "TermNormalNC", -- Keep these as fallback
+	-- Status line
+	"StatusLine",
+	"StatusLineNC",
+
+	-- Cursor/lines
+	"CursorLine",
+
+	-- NvimTree
+	"NvimTreeNormal",
+	"NvimTreeNormalNC",
+	"NvimTreeEndOfBuffer",
+	"NvimTreeVertSplit",
+
+	-- Terminal
+	"Term",
+	"TermNormal",
+	"TermNormalNC",
+	"ToggleTerm",
+	"ToggleTermFloat",
 }
-  for _, group in ipairs(groups) do
-    save_original_bg(group)
-  end
+
+local function save_original_highlights()
+	for _, group in ipairs(groups) do
+		local ok, hl = pcall(vim.api.nvim_get_hl, 0, {
+			name = group,
+			link = false,
+		})
+
+		if ok then
+			_G.original_highlights[group] = hl.bg or "NONE"
+		end
+	end
 end
 
--- Call it once after colorscheme is loaded
-vim.api.nvim_create_autocmd("ColorScheme", {
-  callback = function()
-    -- Ensure your preferred colorscheme is set first
-    vim.cmd.colorscheme("onedark")
-    save_all_original_bgs()
-    -- If transparency is already enabled, re-apply it after colorscheme loads
-    if _G.transparent_enabled then
-      _G.toggle_transparency()
-    end
-  end,
-})
+local function set_transparent_highlights()
+	for _, group in ipairs(groups) do
+		vim.api.nvim_set_hl(0, group, {
+			bg = "NONE",
+		})
+	end
+end
 
--- Call it once after colorscheme is loaded
-vim.api.nvim_create_autocmd("ColorScheme", {
-  callback = function()
-    vim.cmd.colorscheme("onedark")
-    save_all_original_bgs()
-  end,
-})
+local function restore_original_highlights()
+	for _, group in ipairs(groups) do
+		local bg = _G.original_highlights[group]
 
--- Apply transparency in neovim colorscheme
--- Global toggle state
+		if bg ~= nil then
+			vim.api.nvim_set_hl(0, group, {
+				bg = bg,
+			})
+		end
+	end
+end
 
 function _G.toggle_transparency()
-  local groups = {
-    "Normal", "NormalNC", "NormalFloat", "FloatBorder", "VertSplit",
-    "EndOfBuffer", "NvimTreeNormal", "NvimTreeNormalNC",
-    "NvimTreeEndOfBuffer", "NvimTreeVertSplit",
-    "TermNormal", "TermNormalNC",
-    -- Add toggleterm specific groups here
-    "ToggleTerm",
-    "ToggleTermFloat",
-    "Term",
-  }
+	if _G.transparent_enabled then
+		restore_original_highlights()
+	else
+		set_transparent_highlights()
+	end
 
-  if _G.transparent_enabled then
-    -- Restore original colors
-    for _, group in ipairs(groups) do
-      local bg = _G.original_highlights[group]
-      if bg ~= nil then
-        vim.api.nvim_set_hl(0, group, { bg = bg })
-      end
-    end
-  else
-    -- Set background to transparent
-    for _, group in ipairs(groups) do
-      vim.api.nvim_set_hl(0, group, { bg = "NONE" })
-    end
-  end
-
-  _G.transparent_enabled = not _G.transparent_enabled
+	_G.transparent_enabled = not _G.transparent_enabled
 end
 
 vim.api.nvim_create_autocmd("ColorScheme", {
-  callback = function()
-    save_all_original_bgs()
-    if _G.transparent_enabled then
-      _G.toggle_transparency()
-    end
-  end,
+	callback = function()
+		save_original_highlights()
+
+		if _G.transparent_enabled then
+			vim.schedule(function()
+				set_transparent_highlights()
+			end)
+		end
+	end,
 })
 
 vim.api.nvim_create_autocmd("TermOpen", {
-  pattern = "term://*", -- This pattern applies to all terminal buffers
-  callback = function()
-    if _G.transparent_enabled then
-      -- Use vim.defer_fn to give toggleterm a moment to apply its own highlights
-      vim.defer_fn(function()
-        vim.api.nvim_set_hl(0, "ToggleTerm", { bg = "NONE" })
-        vim.api.nvim_set_hl(0, "ToggleTermFloat", { bg = "NONE" })
-        vim.api.nvim_set_hl(0, "Term", { bg = "NONE" })
-      end, 50) -- 50ms delay
-    end
-  end,
+	pattern = "term://*",
+	callback = function()
+		if _G.transparent_enabled then
+			vim.defer_fn(function()
+				set_transparent_highlights()
+			end, 50)
+		end
+	end,
 })
 
 vim.keymap.set("n", "<leader>tt", _G.toggle_transparency, { desc = "Toggle Transparency" })

@@ -10,7 +10,7 @@ return {
 				-- LspRestart was removed in Neovim 0.12; restart LSP clients manually
 				local clients = vim.lsp.get_clients({ bufnr = 0 })
 				for _, client in ipairs(clients) do
-					vim.lsp.stop_client(client.id)
+					client:stop()
 				end
 				vim.cmd("edit")
 			end,
