@@ -3,16 +3,6 @@ return {
 		"rose-pine/neovim",
 		priority = 1000,
 		config = function()
-			require("rose-pine").setup({
-				variant = "main",
-				dark_variant = "main",
-
-				enable = {
-					terminal = true,
-					legacy_highlights = true,
-				},
-			})
-
 			vim.cmd.colorscheme("rose-pine")
 		end,
 	},
@@ -21,10 +11,6 @@ return {
 	{ "dchinmay2/alabaster.nvim", lazy = false, priority = 1000 },
 
 	{ "sainnhe/everforest", lazy = false, priority = 1000 },
-
-	{ "scottmckendry/cyberdream.nvim", lazy = false, priority = 1000 },
-
-	{ "olimorris/onedarkpro.nvim", lazy = false, priority = 1000 },
 
 	{ "Mofiqul/dracula.nvim", lazy = false, priority = 1000 },
 
@@ -42,10 +28,6 @@ return {
 
 	{ "ribru17/bamboo.nvim", lazy = false, priority = 1000 },
 
-	{ "everviolet/nvim", lazy = false, priority = 1000 },
-
-	{ "nyoom-engineering/nyoom.nvim", lazy = false, priority = 1000 },
-
 	{ "rebelot/kanagawa.nvim", lazy = false, priority = 1000 },
 
 	-- onedark
@@ -59,9 +41,6 @@ return {
 
 	-- Nord
 	{ "shaunsingh/nord.nvim", lazy = false, priority = 1000 },
-
-	-- Solarized
-	{ "maxmx03/solarized.nvim", lazy = false, priority = 1000 },
 
 	-- tokyonight
 	{ "folke/tokyonight.nvim", lazy = false, priority = 1000 },

@@ -2,17 +2,11 @@ return {
 	"nvim-treesitter/nvim-treesitter",
 	lazy = false,
 	build = ":TSUpdate",
+
 	config = function()
-		-- Set compiler preference BEFORE setup
-		require("nvim-treesitter.install").compilers = { "zig", "clang", "gcc" }
+		local treesitter = require("nvim-treesitter")
 
-		require("nvim-treesitter").setup({
-			highlight = { enable = true },
-			indent = { enable = true },
-		})
-
-		-- Install the parsers we need
-		local parsers = {
+		treesitter.install({
 			"bash",
 			"c",
 			"diff",
@@ -28,7 +22,25 @@ return {
 			"python",
 			"typescript",
 			"tsx",
-		}
-		require("nvim-treesitter").install(parsers)
+		})
+
+		vim.api.nvim_create_autocmd("FileType", {
+			pattern = "*",
+			callback = function(args)
+				local ft = vim.bo[args.buf].filetype
+
+				local lang = vim.treesitter.language.get_lang(ft)
+
+				if not lang then
+					return
+				end
+
+				if not pcall(vim.treesitter.language.add, lang) then
+					return
+				end
+
+				pcall(vim.treesitter.start, args.buf, lang)
+			end,
+		})
 	end,
 }
