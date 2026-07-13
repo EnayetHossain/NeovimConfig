@@ -54,3 +54,11 @@ vim.keymap.set("n", "n", "nzzzv", { desc = "Next search result cursor centered" 
 vim.keymap.set("n", "N", "Nzzzv", { desc = "Previous search result cursor centered" })
 
 vim.keymap.set("n", "<leader>re", "<cmd>restart<cr>", { desc = "Restart neovim config (:restart)" })
+
+-- Preserve last yank when deleting entire lines
+vim.keymap.set("n", "dd", '"_dd', { noremap = true, silent = true })
+vim.keymap.set("n", "D", '"_D', { noremap = true, silent = true })
+
+-- Allow deleting to normal register when you really want to
+vim.keymap.set("n", "<leader>dd", "dd", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>DD", "DD", { noremap = true, silent = true })
